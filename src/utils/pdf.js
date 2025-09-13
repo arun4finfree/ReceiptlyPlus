@@ -2,6 +2,58 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 /**
+ * Convert number to words (Indian numbering system)
+ * @param {string|number} num - The number to convert
+ * @returns {string} Number in words
+ */
+const convertNumberToWords = (num) => {
+  const number = parseInt(num);
+  if (isNaN(number) || number === 0) return 'Zero';
+  
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const scales = ['', 'Thousand', 'Lakh', 'Crore'];
+  
+  if (number < 10) return ones[number];
+  if (number < 20) return teens[number - 10];
+  if (number < 100) return tens[Math.floor(number / 10)] + (number % 10 ? ' ' + ones[number % 10] : '');
+  if (number < 1000) return ones[Math.floor(number / 100)] + ' Hundred' + (number % 100 ? ' ' + convertNumberToWords(number % 100) : '');
+  
+  // Handle thousands, lakhs, crores
+  let result = '';
+  let scaleIndex = 0;
+  let remaining = number;
+  
+  while (remaining > 0) {
+    const chunk = remaining % 1000;
+    if (chunk !== 0) {
+      const chunkWords = convertNumberToWords(chunk);
+      result = chunkWords + (scales[scaleIndex] ? ' ' + scales[scaleIndex] : '') + (result ? ' ' + result : '');
+    }
+    remaining = Math.floor(remaining / 1000);
+    scaleIndex++;
+  }
+  
+  return result;
+};
+
+/**
+ * Format date for display (DD-MMM-YYYY format)
+ * @param {string} dateString - Date string
+ * @returns {string} Formatted date
+ */
+const formatDateForDisplay = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+/**
  * Generate a PDF receipt from form data and signature
  * @param {Object} formData - The receipt form data
  * @param {string} signatureDataUrl - Base64 signature image data URL
@@ -41,10 +93,11 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
       
       <div class="mb-8" style="margin-bottom: 32px;">
         <p class="text-lg leading-relaxed" style="font-size: 18px; line-height: 1.8;">
-          Received <strong>${formData.denomination} ${formData.amount}</strong> from 
-          <strong>${formData.tenantName}</strong> as rent/advance/lending for the period 
-          <strong>${formData.durationFrom}</strong> - <strong>${formData.durationTo}</strong> 
-          under the term <strong>${formData.term}</strong>.
+          This is to acknowledge the receipt of <strong>${formData.denomination} ${formData.amount}</strong> 
+          (<strong>${convertNumberToWords(formData.amount)} Only</strong>) from 
+          <strong>${formData.tenantName}</strong> towards ${formData.term} rent for the period 
+          <strong>${formatDateForDisplay(formData.durationFrom)}</strong> to 
+          <strong>${formatDateForDisplay(formData.durationTo)}</strong>.
         </p>
       </div>
       
@@ -132,3 +185,4 @@ export const generateReceiptNumber = (sequenceNumber) => {
   const paddedSequence = sequenceNumber.toString().padStart(4, '0');
   return `RCT-${year}-${paddedSequence}`;
 };
+
