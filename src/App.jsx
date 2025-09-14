@@ -4,6 +4,7 @@ import ReceiptForm from './components/ReceiptForm';
 /**
  * Main App component
  * Renders the rental receipt generator application
+ * Updated for GitHub Pages deployment
  */
 function App() {
   return (
