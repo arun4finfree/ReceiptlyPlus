@@ -80,7 +80,7 @@ const SignatureModal = ({ isOpen, onClose, onConfirm, onCancel }) => {
             }}
             onBegin={handleBegin}
             onEnd={handleEnd}
-            backgroundColor="rgb(249, 250, 251)"
+            backgroundColor="rgb(255, 255, 255)"
             penColor="rgb(17, 24, 39)"
           />
         </div>

@@ -15,9 +15,10 @@ const ReceiptForm = () => {
     durationFrom: '',
     durationTo: '',
     term: 'Monthly',
-    denomination: 'INR',
     amount: '',
-    dateOfReceipt: new Date().toISOString().split('T')[0], // Today's date
+    dateOfTransaction: new Date().toISOString().split('T')[0], // Today's date
+    paymentMode: 'Cash',
+    referenceNo: '',
     receiptNumber: '',
     eSignatureRequired: false
   });
@@ -49,7 +50,7 @@ const ReceiptForm = () => {
           ...prev,
           ...parsed,
           receiptNumber, // Always use new receipt number
-          dateOfReceipt: new Date().toISOString().split('T')[0] // Always use today's date
+          dateOfTransaction: new Date().toISOString().split('T')[0] // Always use today's date
         }));
       } catch (error) {
         console.warn('Could not load saved form data:', error);
@@ -66,8 +67,9 @@ const ReceiptForm = () => {
       durationFrom: formData.durationFrom,
       durationTo: formData.durationTo,
       term: formData.term,
-      denomination: formData.denomination,
       amount: formData.amount,
+      paymentMode: formData.paymentMode,
+      referenceNo: formData.referenceNo,
       eSignatureRequired: formData.eSignatureRequired
     };
     localStorage.setItem('rental_receipt_form_data', JSON.stringify(dataToSave));
@@ -110,6 +112,12 @@ const ReceiptForm = () => {
       return false;
     }
 
+    // Check reference number requirement for non-cash payments
+    if (formData.paymentMode !== 'Cash' && !formData.referenceNo.trim()) {
+      setMessage('Reference number is required for non-cash payments.');
+      return false;
+    }
+
     if (formData.eSignatureRequired && !signatureDataUrl) {
       setMessage('E-signature is required but not provided. Please sign the document.');
       return false;
@@ -131,7 +139,7 @@ const ReceiptForm = () => {
       // Prepare form data for PDF generation
       const pdfData = {
         ...formData,
-        dateOfReceipt: formatDate(formData.dateOfReceipt)
+        dateOfTransaction: formatDate(formData.dateOfTransaction)
       };
 
       // Generate PDF
@@ -162,11 +170,12 @@ const ReceiptForm = () => {
       setFormData(prev => ({
         ...prev,
         receiptNumber: nextReceiptNumber,
-        dateOfReceipt: new Date().toISOString().split('T')[0],
+        dateOfTransaction: new Date().toISOString().split('T')[0],
         amount: '',
         tenantName: '',
         durationFrom: '',
-        durationTo: ''
+        durationTo: '',
+        referenceNo: ''
       }));
 
       setSignatureDataUrl('');
@@ -195,11 +204,12 @@ const ReceiptForm = () => {
       setFormData(prev => ({
         ...prev,
         receiptNumber,
-        dateOfReceipt: new Date().toISOString().split('T')[0],
+        dateOfTransaction: new Date().toISOString().split('T')[0],
         amount: '',
         tenantName: '',
         durationFrom: '',
-        durationTo: ''
+        durationTo: '',
+        referenceNo: ''
       }));
       
       setSignatureDataUrl('');
@@ -231,42 +241,20 @@ const ReceiptForm = () => {
 
         <form className="space-y-6">
           {/* Header Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="titleName" className="form-label">
-                Title Name (Company/Person) *
-              </label>
-              <input
-                type="text"
-                id="titleName"
-                name="titleName"
-                value={formData.titleName}
-                onChange={handleInputChange}
-                className="form-input"
-                placeholder="Enter company or person name"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="denomination" className="form-label">
-                Currency Denomination
-              </label>
-              <select
-                id="denomination"
-                name="denomination"
-                value={formData.denomination}
-                onChange={handleInputChange}
-                className="form-input"
-              >
-                <option value="INR">INR (Indian Rupees)</option>
-                <option value="USD">USD (US Dollars)</option>
-                <option value="EUR">EUR (Euros)</option>
-                <option value="GBP">GBP (British Pounds)</option>
-                <option value="CAD">CAD (Canadian Dollars)</option>
-                <option value="AUD">AUD (Australian Dollars)</option>
-              </select>
-            </div>
+          <div>
+            <label htmlFor="titleName" className="form-label">
+              Title Name (Company/Person) *
+            </label>
+            <input
+              type="text"
+              id="titleName"
+              name="titleName"
+              value={formData.titleName}
+              onChange={handleInputChange}
+              className="form-input"
+              placeholder="Enter company or person name"
+              required
+            />
           </div>
 
           <div>
@@ -350,11 +338,11 @@ const ReceiptForm = () => {
             </div>
           </div>
 
-          {/* Amount and Date */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Amount, Payment Mode, and Date */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="amount" className="form-label">
-                Amount *
+                Amount (₹) *
               </label>
               <input
                 type="number"
@@ -371,14 +359,54 @@ const ReceiptForm = () => {
             </div>
 
             <div>
-              <label htmlFor="dateOfReceipt" className="form-label">
-                Date of Receipt
+              <label htmlFor="paymentMode" className="form-label">
+                Payment Mode
+              </label>
+              <select
+                id="paymentMode"
+                name="paymentMode"
+                value={formData.paymentMode}
+                onChange={handleInputChange}
+                className="form-input"
+              >
+                <option value="Cash">Cash</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Bank Deposit">Bank Deposit</option>
+                <option value="UPI Payment">UPI Payment</option>
+                <option value="Net Banking">Net Banking</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Reference Number and Date */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {formData.paymentMode !== 'Cash' && (
+              <div>
+                <label htmlFor="referenceNo" className="form-label">
+                  Reference No. *
+                </label>
+                <input
+                  type="text"
+                  id="referenceNo"
+                  name="referenceNo"
+                  value={formData.referenceNo}
+                  onChange={handleInputChange}
+                  className="form-input"
+                  placeholder="Enter reference number"
+                  required={formData.paymentMode !== 'Cash'}
+                />
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="dateOfTransaction" className="form-label">
+                Date of Transaction
               </label>
               <input
                 type="date"
-                id="dateOfReceipt"
-                name="dateOfReceipt"
-                value={formData.dateOfReceipt}
+                id="dateOfTransaction"
+                name="dateOfTransaction"
+                value={formData.dateOfTransaction}
                 onChange={handleInputChange}
                 className="form-input"
                 required
