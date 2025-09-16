@@ -2,7 +2,7 @@
 
 A React-based single-page application for generating rental receipts with e-signature support. The application allows users to create professional PDF receipts with embedded signatures and automatically manages receipt numbering and storage.
 
-🌐 **Live Demo**: [https://your-username.github.io/receiptlyplus](https://your-username.github.io/receiptlyplus)
+🌐 **Live Demo**: [https://arun4finfree.github.io/receiptlyplus](https://arun4finfree.github.io/receiptlyplus)
 
 ## Features
 

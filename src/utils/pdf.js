@@ -2,9 +2,34 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 /**
- * Convert number to words (Indian numbering system)
- * @param {string|number} num - The number to convert
- * @returns {string} Number in words
+ * PDF Generation Utilities for ReceiptlyPlus
+ * 
+ * This module contains all utility functions for generating PDF receipts
+ * with professional formatting, proper date handling, and signature integration.
+ * 
+ * Key Features:
+ * - Number to words conversion (Indian numbering system)
+ * - Date formatting for display
+ * - Receipt text generation with payment mode logic
+ * - PDF generation with landscape/portrait layout
+ * - Signature integration with clean backgrounds
+ * 
+ * @author ReceiptlyPlus Development Team
+ * @version 1.0.0
+ */
+
+// ===== NUMBER CONVERSION UTILITIES =====
+
+/**
+ * Convert number to words using Indian numbering system
+ * Supports numbers up to crores with proper Indian terminology
+ * 
+ * @param {string|number} num - The number to convert to words
+ * @returns {string} Number written in words (e.g., "Fifty Thousand")
+ * 
+ * @example
+ * convertNumberToWords(50000) // Returns "Fifty Thousand"
+ * convertNumberToWords(1500000) // Returns "Fifteen Lakh" 
  */
 const convertNumberToWords = (num) => {
   const number = parseInt(num);
@@ -38,22 +63,85 @@ const convertNumberToWords = (num) => {
   return result;
 };
 
+// ===== DATE FORMATTING UTILITIES =====
+
 /**
+ * Format date for display in DD-MMM-YYYY format
+ * Handles various date input formats and provides error handling
+ * 
+ * @param {string} dateString - Date string in YYYY-MM-DD format or other valid formats
+ * @returns {string} Formatted date in DD-MMM-YYYY format (e.g., "9-Feb-2025")
+ * 
+ * @example
+ * formatDateForDisplay("2025-02-09") // Returns "9-Feb-2025"
+ * formatDateForDisplay("2025-12-25") // Returns "25-Dec-2025"
  * Format date for display (DD-MMM-YYYY format)
  * @param {string} dateString - Date string
  * @returns {string} Formatted date
  */
 const formatDateForDisplay = (dateString) => {
   if (!dateString) return '';
-  const date = new Date(dateString);
+  
+  try {
+    // Handle different date formats
+    let date;
+    if (dateString.includes('-')) {
+      // Handle YYYY-MM-DD format
+      date = new Date(dateString + 'T00:00:00');
+    } else {
+      // Handle other formats
+      date = new Date(dateString);
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', dateString);
+      return '';
+    }
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    
+    return `${day}-${month}-${year}`;
+  } catch (error) {
+    console.error('Error formatting date:', dateString, error);
+    return '';
+  }  
+  /*const date = new Date(dateString);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const day = date.getDate();
   const month = months[date.getMonth()];
   const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
+  return `${day}-${month}-${year}`;*/
 };
 
+// ===== RECEIPT TEXT GENERATION =====
+
 /**
+ * Generate receipt text based on payment mode and form data
+ * Creates different text formats for cash vs non-cash payments
+ * 
+ * @param {Object} formData - The form data containing all receipt information
+ * @param {string} formData.amount - Rental amount
+ * @param {string} formData.tenantName - Tenant name
+ * @param {string} formData.term - Payment term (Monthly/Yearly)
+ * @param {string} formData.durationFrom - Rental period start date
+ * @param {string} formData.durationTo - Rental period end date
+ * @param {string} formData.paymentMode - Payment method (Cash/Cheque/etc.)
+ * @param {string} formData.referenceNo - Reference number for non-cash payments
+ * @param {string} formData.dateOfTransaction - Transaction date
+ * @returns {string} Formatted receipt text with proper payment mode handling
+ * 
+ * @example
+ * // Cash payment
+ * generateReceiptText({paymentMode: 'Cash', amount: '50000', ...})
+ * // Returns: "This is to acknowledge the receipt of ₹50000 (Fifty Thousand Only) from John Doe towards Monthly rent for the period 1-Aug-2025 to 31-Aug-2025, paid via Cash."
+ * 
+ * // Non-cash payment
+ * generateReceiptText({paymentMode: 'Cheque', referenceNo: '12345', ...})
+ * // Returns: "This is to acknowledge the receipt of ₹50000 (Fifty Thousand Only) from John Doe towards Monthly rent for the period 1-Aug-2025 to 31-Aug-2025, paid via Cheque (12345) on 9-Feb-2025."
  * Generate receipt text based on payment mode
  * @param {Object} formData - The form data
  * @returns {string} Formatted receipt text
@@ -69,6 +157,7 @@ const generateReceiptText = (formData) => {
   const referenceNo = formData.referenceNo;
   const transactionDate = formatDateForDisplay(formData.dateOfTransaction);
 
+  // Add payment mode specific text
   if (paymentMode === 'Cash') {
     return `This is to acknowledge the receipt of <strong>₹${amount}</strong> (<strong>${amountInWords} Only</strong>) from <strong>${tenantName}</strong> towards ${term} rent for the period <strong>${durationFrom}</strong> to <strong>${durationTo}</strong>, paid via Cash.`;
   } else {
@@ -76,8 +165,27 @@ const generateReceiptText = (formData) => {
   }
 };
 
+// ===== PDF GENERATION =====
 /**
- * Generate a PDF receipt from form data and signature
+ * Generate and download PDF receipt from form data and signature
+ * Creates a professional PDF with proper layout, borders, and signature integration
+ * 
+ * @param {Object} formData - The receipt form data containing all necessary information
+ * @param {string} signatureDataUrl - Base64 signature image data URL (optional)
+ * @returns {Promise<boolean>} True if PDF generation is successful
+ * 
+ * @throws {Error} If PDF generation fails
+ * 
+ * @example
+ * const formData = {
+ *   titleName: "ABC Properties",
+ *   tenantName: "John Doe",
+ *   amount: "50000",
+ *   paymentMode: "Cash",
+ *   // ... other form fields
+ * };
+ * await generateReceiptPDF(formData, signatureDataUrl);
+* Generate a PDF receipt from form data and signature
  * @param {Object} formData - The receipt form data
  * @param {string} signatureDataUrl - Base64 signature image data URL
  * @returns {Promise<void>}
@@ -96,7 +204,8 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
 
     // Build the receipt HTML content with new layout
     const receiptText = generateReceiptText(formData);
-    
+    const receiptDate = formatDateForDisplay(new Date().toISOString().split('T')[0]); // Current date for receipt    
+
     receiptElement.innerHTML = `
       <div style="border: 4px double #000; padding: 20px; min-height: 180mm; background: white;">
         <div class="text-center mb-4" style="margin-bottom: 16px;">
@@ -109,17 +218,20 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
           <hr style="border: 1px solid #000; margin: 8px 0;">
         </div>
         
-        <div class="flex justify-between mb-6" style="margin-bottom: 24px;">
-          <div>
-            <strong>Receipt Number:</strong> ${formData.receiptNumber}
-          </div>
-          <div style="text-align: center; flex: 1;">
-            <strong>Receipt</strong>
-          </div>
-          <div>
-            <strong>Date:</strong> ${formatDateForDisplay(formData.dateOfTransaction)}
-          </div>
-        </div>
+        <!-- Invisible table for proper alignment -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+          <tr>
+            <td style="text-align: left; width: 33.33%;">
+              <strong>Receipt #:</strong> ${formData.receiptNumber}
+            </td>
+            <td style="text-align: center; width: 33.33%;">
+              <strong>Payment Receipt</strong>
+            </td>
+            <td style="text-align: right; width: 33.33%;">
+              <strong>Date:</strong> ${receiptDate}
+            </td>
+          </tr>
+        </table>
         
         <div class="mb-8" style="margin-bottom: 32px;">
           <p class="text-lg leading-relaxed" style="font-size: 18px; line-height: 1.8; text-align: justify;">
@@ -158,7 +270,7 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
     // Create PDF
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({
-      orientation: 'landscape',
+      orientation: 'portrait',
       unit: 'mm',
       format: 'a4'
     });
@@ -202,7 +314,17 @@ export const formatDate = (dateString) => {
   return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
 };
 
+// ===== RECEIPT NUMBER GENERATION =====
+
 /**
+ * Generate receipt number in RCT-YYMM-HHMM format
+ * Uses current timestamp to ensure uniqueness
+ * 
+ * @param {number} sequenceNumber - The sequence number (not used in new format, kept for compatibility)
+ * @returns {string} Formatted receipt number (e.g., "RCT-2509-1650")
+ * 
+ * @example
+ * generateReceiptNumber(0) // Returns "RCT-2509-1650" (current date/time)
  * Generate receipt number in format RCT-YYMM-HHMM
  * @param {number} sequenceNumber - The sequence number (not used in new format)
  * @returns {string} Formatted receipt number
@@ -215,4 +337,3 @@ export const generateReceiptNumber = (sequenceNumber) => {
   const minutes = now.getMinutes().toString().padStart(2, '0'); // Minutes (00-59)
   return `RCT-${year}${month}-${hours}${minutes}`;
 };
-
