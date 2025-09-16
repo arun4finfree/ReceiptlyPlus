@@ -29,6 +29,46 @@ const ReceiptForm = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Helper function to get previous month's start and end dates
+  const getPreviousMonthDates = () => {
+    const now = new Date();
+    // Get previous month (current month - 1)
+    const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    // Get last day of previous month
+    const lastDayOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    // Format dates as YYYY-MM-DD
+    const startDate = previousMonth.getFullYear() + '-' + 
+                     String(previousMonth.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(previousMonth.getDate()).padStart(2, '0');
+    const endDate = lastDayOfPreviousMonth.getFullYear() + '-' + 
+                   String(lastDayOfPreviousMonth.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(lastDayOfPreviousMonth.getDate()).padStart(2, '0');
+    
+    console.log('Previous month dates:', { startDate, endDate, now: now.toISOString() });
+    return { startDate, endDate };
+  };
+
+  // Helper function to get date constraints
+  const getDateConstraints = () => {
+    const now = new Date();
+    // One year ago from the 1st of current month
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    // End of current month (last day of current month)
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Format dates as YYYY-MM-DD
+    const minDate = oneYearAgo.getFullYear() + '-' + 
+                   String(oneYearAgo.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(oneYearAgo.getDate()).padStart(2, '0');
+    const maxDate = currentMonthEnd.getFullYear() + '-' + 
+                   String(currentMonthEnd.getMonth() + 1).padStart(2, '0') + '-' + 
+                   String(currentMonthEnd.getDate()).padStart(2, '0');
+    
+    console.log('Date constraints:', { minDate, maxDate, now: now.toISOString() });
+    return { minDate, maxDate };
+  };
+
   // Initialize form with stored data and generate receipt number
   useEffect(() => {
     // Load last receipt number from localStorage
@@ -36,9 +76,14 @@ const ReceiptForm = () => {
     const nextSequence = lastSequence + 1;
     const receiptNumber = generateReceiptNumber(nextSequence);
 
+    // Get default dates for previous month
+    const { startDate, endDate } = getPreviousMonthDates();
+
     setFormData(prev => ({
       ...prev,
-      receiptNumber
+      receiptNumber,
+      durationFrom: startDate,
+      durationTo: endDate
     }));
 
     // Load any previously saved form data (optional - for user convenience)
@@ -50,7 +95,10 @@ const ReceiptForm = () => {
           ...prev,
           ...parsed,
           receiptNumber, // Always use new receipt number
-          dateOfTransaction: new Date().toISOString().split('T')[0] // Always use today's date
+          dateOfTransaction: new Date().toISOString().split('T')[0], // Always use today's date
+          // Override with default dates if not set
+          durationFrom: parsed.durationFrom || startDate,
+          durationTo: parsed.durationTo || endDate
         }));
       } catch (error) {
         console.warn('Could not load saved form data:', error);
@@ -78,6 +126,19 @@ const ReceiptForm = () => {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Handle term change - update duration dates
+    if (name === 'term') {
+      const { startDate, endDate } = getPreviousMonthDates();
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        durationFrom: startDate,
+        durationTo: endDate
+      }));
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -120,6 +181,28 @@ const ReceiptForm = () => {
 
     if (formData.eSignatureRequired && !signatureDataUrl) {
       setMessage('E-signature is required but not provided. Please sign the document.');
+      return false;
+    }
+
+    // Validate date ranges
+    const { minDate, maxDate } = getDateConstraints();
+    const durationFrom = new Date(formData.durationFrom);
+    const durationTo = new Date(formData.durationTo);
+    const minDateObj = new Date(minDate);
+    const maxDateObj = new Date(maxDate);
+
+    if (durationFrom < minDateObj || durationFrom > maxDateObj) {
+      setMessage('Duration From date must be within the allowed range (1 year ago to end of current month).');
+      return false;
+    }
+
+    if (durationTo < minDateObj || durationTo > maxDateObj) {
+      setMessage('Duration To date must be within the allowed range (1 year ago to end of current month).');
+      return false;
+    }
+
+    if (durationFrom > durationTo) {
+      setMessage('Duration From date cannot be after Duration To date.');
       return false;
     }
 
@@ -302,8 +385,13 @@ const ReceiptForm = () => {
                 value={formData.durationFrom}
                 onChange={handleInputChange}
                 className="form-input"
+                min={getDateConstraints().minDate}
+                max={getDateConstraints().maxDate}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Range: 1 year ago to end of current month
+              </p>
             </div>
 
             <div>
@@ -317,8 +405,13 @@ const ReceiptForm = () => {
                 value={formData.durationTo}
                 onChange={handleInputChange}
                 className="form-input"
+                min={getDateConstraints().minDate}
+                max={getDateConstraints().maxDate}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Range: 1 year ago to end of current month
+              </p>
             </div>
 
             <div>
