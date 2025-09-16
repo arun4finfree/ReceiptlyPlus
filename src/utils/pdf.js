@@ -155,7 +155,7 @@ const generateReceiptText = (formData) => {
   const durationTo = formatDateForDisplay(formData.durationTo);
   const paymentMode = formData.paymentMode;
   const referenceNo = formData.referenceNo;
-  const transactionDate = formatDateForDisplay(formData.dateOfTransaction);
+  const transactionDate = formatDateForDisplay(formData.dateOfTransaction) || formatDateForDisplay(new Date().toISOString().split('T')[0]);
 
   // Add payment mode specific text
   if (paymentMode === 'Cash') {
@@ -207,7 +207,7 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
     const receiptDate = formatDateForDisplay(new Date().toISOString().split('T')[0]); // Current date for receipt    
 
     receiptElement.innerHTML = `
-      <div style="border: 4px double #000; padding: 20px; min-height: 180mm; background: white;">
+      <div style="border: 4px double #000; padding: 20px; min-height: 140mm; background: white;">
         <div class="text-center mb-4" style="margin-bottom: 16px;">
           <h1 class="text-3xl font-bold mb-1" style="font-size: 28px; font-weight: bold; margin-bottom: 8px;">
             ${formData.titleName || 'Rental Receipt'}
@@ -243,7 +243,7 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
           <div style="text-align: right;">
             ${signatureDataUrl ? `
               <div class="mb-4" style="margin-bottom: 16px;">
-                <img src="${signatureDataUrl}" alt="Signature" style="max-width: 200px; max-height: 100px; background: white;" />
+                <img src="${signatureDataUrl}" alt="Signature" style="max-width: 200px; max-height: 100px; background: white; display: block; margin-left: auto;" />
               </div>
             ` : ''}
             <div class="border-t-2 border-gray-400 pt-2" style="border-top: 2px solid #9ca3af; padding-top: 8px; width: 200px; margin-left: auto;">
