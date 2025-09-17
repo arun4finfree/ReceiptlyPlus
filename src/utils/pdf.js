@@ -147,14 +147,15 @@ const formatDateForDisplay = (dateString) => {
  * @returns {string} Formatted receipt text
  */
 const generateReceiptText = (formData) => {
-  const amount = formData.amount;
+  // Add fallback values to prevent undefined errors
+  const amount = formData.amount || '0';
   const amountInWords = convertNumberToWords(amount);
-  const tenantName = formData.tenantName;
-  const term = formData.term;
-  const durationFrom = formatDateForDisplay(formData.durationFrom);
-  const durationTo = formatDateForDisplay(formData.durationTo);
-  const paymentMode = formData.paymentMode;
-  const referenceNo = formData.referenceNo;
+  const tenantName = formData.tenantName || 'Unknown';
+  const term = formData.term || 'Monthly';
+  const durationFrom = formatDateForDisplay(formData.durationFrom) || 'N/A';
+  const durationTo = formatDateForDisplay(formData.durationTo) || 'N/A';
+  const paymentMode = formData.paymentMode || 'Cash';
+  const referenceNo = formData.referenceNo || '';
   const transactionDate = formatDateForDisplay(formData.dateOfTransaction) || formatDateForDisplay(new Date().toISOString().split('T')[0]);
 
   // Add payment mode specific text
@@ -192,6 +193,10 @@ const generateReceiptText = (formData) => {
  */
 export const generateReceiptPDF = async (formData, signatureDataUrl) => {
   try {
+    // Debug logging
+    console.log('Form data received:', formData);
+    console.log('Signature data URL:', signatureDataUrl);
+    
     // Create a temporary div element to render the receipt content
     const receiptElement = document.createElement('div');
     receiptElement.id = 'receipt-content';
@@ -204,16 +209,23 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
 
     // Build the receipt HTML content with new layout
     const receiptText = generateReceiptText(formData);
-    const receiptDate = formatDateForDisplay(new Date().toISOString().split('T')[0]); // Current date for receipt    
+    const receiptDate = formatDateForDisplay(new Date().toISOString().split('T')[0]); // Current date for receipt
+    
+    console.log('Generated receipt text:', receiptText);    
+    
+    // Ensure all form data has fallback values
+    const titleName = formData.titleName || 'Rental Receipt';
+    const titleAddress = formData.titleAddress || '';
+    const receiptNumber = formData.receiptNumber || 'RCT-0000-0000';
 
     receiptElement.innerHTML = `
       <div style="border: 4px double #000; padding: 20px; min-height: 140mm; background: white;">
         <div class="text-center mb-4" style="margin-bottom: 16px;">
           <h1 class="text-3xl font-bold mb-1" style="font-size: 28px; font-weight: bold; margin-bottom: 8px;">
-            ${formData.titleName || 'Rental Receipt'}
+            ${titleName}
           </h1>
           <p class="text-lg" style="font-size: 16px; color: #666; margin-bottom: 8px;">
-            ${formData.titleAddress || ''}
+            ${titleAddress}
           </p>
           <hr style="border: 1px solid #000; margin: 8px 0;">
         </div>
@@ -222,7 +234,7 @@ export const generateReceiptPDF = async (formData, signatureDataUrl) => {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
           <tr>
             <td style="text-align: left; width: 33.33%;">
-              <strong>Receipt #:</strong> ${formData.receiptNumber}
+              <strong>Receipt #:</strong> ${receiptNumber}
             </td>
             <td style="text-align: center; width: 33.33%;">
               <strong>Payment Receipt</strong>
