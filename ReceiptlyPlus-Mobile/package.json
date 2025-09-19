@@ -1,0 +1,54 @@
+{
+  "name": "receiptlyplus-mobile",
+  "version": "1.0.0",
+  "description": "ReceiptlyPlus Mobile - Cross-platform rental receipt generator with e-signature support",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite",
+    "mobile:build": "npm run build && npx cap sync",
+    "mobile:android": "npx cap run android",
+    "mobile:open": "npx cap open android",
+    "mobile:sync": "npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/app": "^5.0.8",
+    "@capacitor/core": "^5.7.8",
+    "@capacitor/filesystem": "^5.2.2",
+    "@capacitor/share": "^5.0.8",
+    "@capacitor/splash-screen": "^5.0.8",
+    "@capacitor/status-bar": "^5.0.8",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-signature-canvas": "^1.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^5.7.8",
+    "@capacitor/cli": "^5.7.8",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5"
+  },
+  "keywords": [
+    "react",
+    "receipt",
+    "pdf",
+    "signature",
+    "rental",
+    "mobile",
+    "capacitor",
+    "android"
+  ],
+  "author": "ReceiptlyPlus Development Team",
+  "license": "MIT"
+}
